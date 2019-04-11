@@ -53,8 +53,8 @@ default ```env.sh```:
 
 ```sh
 # do NOT change these, if you don't know why
-export STATUS_CHECK_INTERVAL=10
-export STATUS_CHECK_COUNT=30
+export STATUS_CHECK_INTERVAL=1
+export STATUS_CHECK_COUNT=300
 
 # refer to: https://docs.python.org/3.6/library/logging.html#logging-levels
 export LOG_LEVEL=10 # debug
