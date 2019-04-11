@@ -17,7 +17,7 @@ hub:
   services:
     launcher:
       url: http://[host]:[port] # launcher-service的地址
-      api_token: 'ad6b8dc16f624b54a5b7d265f0744c98' # JupyterHub的API Token，需要使用管理员帐号申请，要与launcher-service环境变量的配置对应
+      api_token: 'ad6b8dc16f624b54a5b7d265f0744c98' # JupyterHub的API Token，要与launcher-service环境变量的配置对应
 
   extraConfig: |-
     from kubespawner import KubeSpawner
