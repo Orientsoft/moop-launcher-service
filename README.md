@@ -1,6 +1,15 @@
+
 # jupyterhub-launcher-service
 
 Extended launcher service for jupyterhub, to start container with run-time parameters.  
+
+## Docker build
+```sh
+   git clone https://github.com/Orientsoft/moop-launcher-service.git
+   cd moop-launcher-service
+   docker build -t moop-launcher-service .
+   docker run -p 5000:5000 moop-launcher-service
+```
 
 ## jupyterhub config
 
