@@ -1,13 +1,19 @@
-FROM python:3.6-alpine
+FROM python:3.6-alpine as base
 
-RUN apk add -U --no-cache gcc build-base linux-headers ca-certificates python3 python3-dev libffi-dev libressl-dev
+FROM base as builder
+RUN apk add --no-cache gcc musl-dev
 
-COPY requirements.txt /
+RUN mkdir /install && mkdir /app
+WORKDIR /install
+COPY requirements.txt /requirements.txt
+RUN pip install --install-option="--prefix=/install" -r /requirements.txt 
 
-RUN pip install --no-cache-dir -r /requirements.txt && mkdir /app
+FROM base
+COPY --from=builder /install /usr/local
 
+RUN mkdir /install && mkdir /app
+WORKDIR /app
 COPY launcher-service.py /app
 COPY starter.sh /app
 
-WORKDIR /app
 CMD ["./starter.sh"]

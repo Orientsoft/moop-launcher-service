@@ -10,4 +10,4 @@ export JUPYTERHUB_API_TOKEN="ad6b8dc16f624b54a5b7d265f0744c98"
 export USER_TOKEN_LIFETIME=1800
 
 #python launcher-service.py flask run -h 0.0.0.0 -p 5000
-gunicorn -w 2 -b 127.0.0.1:5000 launcher-service:app
+gunicorn -w 2 -b 127.0.0.1:5000 -d launcher-service:app
