@@ -2,6 +2,7 @@
 # jupyterhub-launcher-service
 
 Extended launcher service for jupyterhub, to start container with run-time parameters.  
+<a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
 
 ## Docker build
 ```sh
