@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: launcher-service
+  # namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: moop
+      service: launcher-service
+  template:
+    metadata:
+      labels:
+        app: moop
+        service: launcher-service
+    spec:
+      containers:
+      - name: moop-launcher-service
+        image: registry.datadynamic.io/moop/moop-launcher-service:4753089
+        volumeMounts:
+        - name:  launcher-service-config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+
+        resources: {}
+          # requests:
+          #   memory: 32Mi
+          #   cpu: 40m
+          # limits:
+          #   memory: 2Gi
+          #   cpu: 1
+
+
+      imagePullSecrets:
+      - name: regcred
+
+      volumes:
+      - name:  launcher-service-config
+        configMap:
+          name: launcher-service-config

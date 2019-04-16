@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: launcher-service-config
+
+data:
+    config.yaml: |-
+      host: '0.0.0.0'
+      port: 80
+      debug: true
+      # 10 - debug
+      log_level: 10
+      status_check_interval: 1
+      status_check_count: 120
+      jupyterhub_service_prefix: '/services/launcher/'
+      jupyterhub_url: 'http://proxy-public'
+      jupyterhub_api_prefix: '/hub/api'
+      jupyterhub_api_token: 'ad6b8dc16f624b54a5b7d265f0744c98'
+      user_token_lifetime: 1800
