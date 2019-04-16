@@ -47,35 +47,36 @@ hub:
     c.JupyterHub.spawner_class = LauncherSpawner
 ```
 
-## envs
+## config.yaml
 
-default ```env.sh```:  
+Please place config.yaml under the root of launcher service.  
 
-```sh
-# do NOT change these, if you don't know why
-export STATUS_CHECK_INTERVAL=1
-export STATUS_CHECK_COUNT=300
+config.yaml:  
 
-# refer to: https://docs.python.org/3.6/library/logging.html#logging-levels
-export LOG_LEVEL=10 # debug
-
-# extended endpoint
-export JUPYTERHUB_SERVICE_PREFIX="/services/launcher/"
-
-# change these to match your jupyterhub deploy
-export JUPYTERHUB_URL="http://192.168.0.31:30711"
-export JUPYTERHUB_API_PREFIX="/hub/api"
-export JUPYTERHUB_API_TOKEN="ad6b8dc16f624b54a5b7d265f0744c98"
-
-# user token expires in 1800s by default
-export USER_TOKEN_LIFETIME=1800
+```yaml
+host: '0.0.0.0'
+port: 5000
+debug: true
+# 10 - debug
+log_level: 10
+# do not alter the following 2 status parameters
+status_check_interval: 1
+status_check_count: 120
+# launcher service prefix extended in JH
+jupyterhub_service_prefix: '/services/launcher/'
+jupyterhub_url: 'http://192.168.0.31:30264'
+# prefix of jupyterhub api endpoint
+jupyterhub_api_prefix: '/hub/api'
+# service api token, must be the same as in JH config
+jupyterhub_api_token: 'ad6b8dc16f624b54a5b7d265f0744c98'
+# token lifetime requested from JH
+user_token_lifetime: 1800
 ```
 
 ## dev start
 
 ```sh
-source ./env.sh
-FLASK_APP=./launcher-service.py flask run -h 0.0.0.0 -p 5000
+python launcher-service.py
 ```
 
 ## API

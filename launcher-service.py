@@ -10,8 +10,37 @@ import uuid
 
 import requests
 from flask import Flask, redirect, request, Response
+import yaml
+
+# consts
+REQUEST_TIMEOUT = 120
+LOG_NAME = 'Launcher-Service'
+LOG_FORMAT = '%(asctime)s - %(filename)s:%(lineno)s - %(name)s:%(funcName)s - [%(levelname)s] %(message)s'
+
+CONFIG_PATH = './config.yaml'
+
+with open(CONFIG_PATH) as config_file:
+    config_str = config_file.read()
+    configs = yaml.load(config_str)
+
+    LOG_LEVEL = configs['log_level']
+
+    LAUNCH_STATUS_INTERVAL = configs['status_check_interval']
+    LAUNCH_STATUS_CHECK_COUNT = configs['status_check_count']
+
+    service_prefix = configs['jupyterhub_service_prefix']
+    hub_url = configs['jupyterhub_url']
+    hub_api_prefix = configs['jupyterhub_api_prefix']
+    hub_api_token = configs['jupyterhub_api_token']
+
+    user_token_lifetime = configs['user_token_lifetime']
+
+    HOST = configs['host']
+    PORT = configs['port']
+    DEBUG = configs['debug']
 
 # configs from envs
+'''
 LAUNCH_STATUS_INTERVAL = int(os.getenv('STATUS_CHECK_INTERVAL', ''))
 LAUNCH_STATUS_CHECK_COUNT = int(os.getenv('STATUS_CHECK_COUNT', ''))
 LOG_LEVEL = int(os.getenv('LOG_LEVEL', ''))
@@ -22,13 +51,9 @@ hub_api_prefix = os.getenv('JUPYTERHUB_API_PREFIX', '').strip()
 hub_api_token = os.getenv('JUPYTERHUB_API_TOKEN', '').strip()
 
 user_token_lifetime = int(os.getenv('USER_TOKEN_LIFETIME').strip())
+'''
 
 hub_api_url = '{}{}'.format(hub_url, hub_api_prefix)
-
-# consts
-REQUEST_TIMEOUT = 120
-LOG_NAME = 'Launcher-Service'
-LOG_FORMAT = '%(asctime)s - %(filename)s:%(lineno)s - %(name)s:%(funcName)s - [%(levelname)s] %(message)s'
 
 def setup_logger(level):
     handler = logging.StreamHandler(stream=sys.stdout)
@@ -358,3 +383,11 @@ def remove_container():
             mimetype='application/json'
         )
         
+if __name__ == '__main__':
+    logger.debug('configs: {}'.format(configs))
+    app.run(
+        debug=DEBUG,
+        host=HOST,
+        port=PORT,
+        threaded=True
+    )
