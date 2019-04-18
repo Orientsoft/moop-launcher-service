@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: moop-launcher-service
-        image: registry.datadynamic.io/moop/moop-launcher-service:43ae35a
+        image: registry.datadynamic.io/moop/moop-launcher-service:{IMAGE_TAG_for_change}
         volumeMounts:
         - name:  launcher-service-config
           mountPath: /app/config.yaml
