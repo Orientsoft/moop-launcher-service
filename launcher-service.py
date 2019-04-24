@@ -175,11 +175,15 @@ def launch(image, username, server_name='', volumes=None, volume_mounts=None):
         # named server not enabled
         # just check if the user has a running server ''
         if server_name == '':
-            user_data = request_api(session, 'users/{}'.format(username)).json()
-            
-            if 'status' in user_data and user_data['status'] == 404:
+            user_resp = request_api(session, 'users/{}'.format(username))
+
+            if (user_resp.status_code == 404):
+            # if 'status' in user_data and user_data['status'] == 404:
                 new_user = request_api(session, 'users/{}'.format(username), method='post').json()
-            elif 'servers' in user_data.keys() and server_name in user_data['servers'].keys():
+            else:
+                user_data = user_resp.json()
+
+                if 'servers' in user_data.keys() and server_name in user_data['servers'].keys():
                     return Response(
                         json.dumps(
                             {'error': '{} already has a running server'.format(username)},
@@ -199,7 +203,9 @@ def launch(image, username, server_name='', volumes=None, volume_mounts=None):
                 'expires_in': user_token_lifetime
             }
         ).json()
-        print(user_token_resp)
+
+        logger.debug('user_token_resp: {}'.format(user_token_resp))
+
         user_token = user_token_resp['token']
         
         data = {
