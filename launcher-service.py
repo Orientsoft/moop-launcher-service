@@ -110,6 +110,8 @@ def request_api(session, url, *args, method='get', **kwargs):
     if (method == 'get') and (resp.status_code != 404): # allow GET 404
         resp.raise_for_status()
 
+    logger.debug('resp - code: {}, text: {}'.format(resp.status_code, resp.text))
+
     return resp
 
 def get_launch_params(f):
