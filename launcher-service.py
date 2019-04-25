@@ -214,6 +214,8 @@ def launch(image, username, server_name='', volumes=None, volume_mounts=None):
             'volume_mounts': volume_mounts
         }
 
+        logger.debug('data: {}'.format(data))
+
         # call jupyterhub api to launch server
         server_resp = request_api(
             session,
