@@ -204,8 +204,6 @@ def launch(image, username, server_name='', volumes=None, volume_mounts=None):
             }
         ).json()
 
-        logger.debug('user_token_resp: {}'.format(user_token_resp))
-
         user_token = user_token_resp['token']
         
         data = {
