@@ -17,4 +17,4 @@ data:
       jupyterhub_url: 'http://proxy-public'
       jupyterhub_api_prefix: '/hub/api'
       jupyterhub_api_token: 'ad6b8dc16f624b54a5b7d265f0744c98'
-      user_token_lifetime: 1800
+      user_token_lifetime: 14400
