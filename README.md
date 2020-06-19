@@ -3,9 +3,6 @@
 
 Extended launcher service for jupyterhub, to start container with run-time parameters.  
 
-
-[![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
-
 ## Docker build
 ```sh
    git clone https://github.com/Orientsoft/moop-launcher-service.git
@@ -109,6 +106,7 @@ Submit run-time parameters in request.body - **image, username, server_name and 
         {
             "pvc": String, // PVC name
             "mount": String, // mount point
+            "subpath": String, // mount sub path
         }
     ]
 }
@@ -131,6 +129,7 @@ If container starts successfully, notebook endpoint url and other info will be r
         {
             "pvc": String, // PVC name
             "mount": String, // mount point
+            "subpath": String, // mount sub path
         }
     ]
 }

@@ -148,7 +148,8 @@ def get_launch_params(f):
 
                 volume_mounts.append({
                     'name': vol_names[i],
-                    'mountPath': vol['mount']
+                    'mountPath': vol['mount'],
+                    'subPath': vol['subpath']
                 })
         else:
             volumes = None
