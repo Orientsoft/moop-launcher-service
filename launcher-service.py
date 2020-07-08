@@ -155,6 +155,10 @@ def get_launch_params(f):
             volumes = None
             volume_mounts = None
 
+        cpu = body['cpu'] if 'cpu' in body.keys() else None
+        memory = body['memory'] if 'memory' in body.keys() else None
+        gpu = body['gpu'] if 'gpu' in body.keys() else None
+
         return f(
             body['image'],
             body['username'],
@@ -162,6 +166,9 @@ def get_launch_params(f):
             server_name=server_name,
             volumes=volumes,
             volume_mounts=volume_mounts,
+            cpu=cpu,
+            memory=memory,
+            gpu=gpu,
             **kwargs
         )
 
@@ -169,7 +176,7 @@ def get_launch_params(f):
 
 @app.route('{}{}'.format(service_prefix, 'containers'), methods=['POST'])
 @get_launch_params
-def launch(image, username, server_name='', volumes=None, volume_mounts=None):
+def launch(image, username, server_name='', volumes=None, volume_mounts=None, cpu=None, memory=None, gpu=None):
     try:
         session = requests.Session()
 
@@ -212,7 +219,10 @@ def launch(image, username, server_name='', volumes=None, volume_mounts=None):
             'username': username,
             'server_name': server_name,
             'volumes': volumes,
-            'volume_mounts': volume_mounts
+            'volume_mounts': volume_mounts,
+            'cpu': cpu,
+            'memory': memory,
+            'gpu': gpu
         }
 
         logger.debug('data: {}'.format(data))

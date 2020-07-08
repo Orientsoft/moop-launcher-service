@@ -51,6 +51,20 @@ hub:
           self.volume_mounts = self.original_volume_mounts.copy()
           self.volume_mounts.extend(self.user_options['volume_mounts'])
 
+        if 'cpu' in self.user_options:
+          self.cpu_guarantee = self.user_options['cpu']['request']
+          self.cpu_limit = self.user_options['cpu']['limit']
+
+        if 'memory' in self.user_options:
+          self.mem_guarantee = self.user_options['memory']['request']
+          self.mem_limit = self.user_options['memory']['limit']
+
+        if 'gpu' in self.user_options:
+          self.extra_resource_guarantees = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['request'])}
+          self.extra_resource_limits = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['limit'])}
+          self.volumes.extend([{"name": "shm-volume", "emptyDir": {"medium": "Memory"}}])
+          self.volume_mounts.extend([{"name": "shm-volume", "mountPath": "/dev/shm"}])
+
         return super().start()
     
     c.JupyterHub.spawner_class = LauncherSpawner
@@ -102,6 +116,18 @@ Submit run-time parameters in request.body - **image, username, server_name and 
 {
     "image": "jupyter/base-notebook:latest",
     "username": "voyager",
+    "cpu": {
+        "request": 0.5,
+        "limit": 1
+    },
+    "memory": {
+        "request": "512M",
+        "limit": "1G"
+    },
+    "gpu":{
+        "request": 1,
+        "limit": 1
+    },
     "vols": [
         {
             "pvc": String, // PVC name
@@ -125,6 +151,18 @@ If container starts successfully, notebook endpoint url and other info will be r
     "token": "be6ac9cb7581421da30d6a16339eaf91",
     "url": "http://192.168.0.31:30711/user/voyager/", // endpoint url
     "username": "voyager",
+    "cpu": {
+        "request": 0.5,
+        "limit": 1
+    },
+    "memory": {
+        "request": "512M",
+        "limit": "1G"
+    },
+    "gpu":{
+        "request": 1,
+        "limit": 1
+    },
     "vols": [
         {
             "pvc": String, // PVC name
