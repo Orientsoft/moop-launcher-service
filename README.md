@@ -33,37 +33,57 @@ hub:
 
     class LauncherSpawner(KubeSpawner):
       def start(self):
-        if 'start_count' not in dir(self):
-          self.start_count = 0
-          self.original_volumes = self.volumes.copy()
-          self.original_volume_mounts = self.volume_mounts.copy()
+        if 'transparent' not in self.user_options:
+          if 'start_count' not in dir(self):
+            self.start_count = 0
+            self.original_volumes = self.volumes.copy()
+            self.original_volume_mounts = self.volume_mounts.copy()
         
-        self.start_count += 1
-
-        if 'image' in self.user_options:
+          self.start_count += 1
+        
           self.image = self.user_options['image']
 
-        if ('volumes' in self.user_options) and (self.user_options['volumes'] is not None):
-          self.volumes = self.original_volumes.copy()
-          self.volumes.extend(self.user_options['volumes'])
+          if ('volumes' in self.user_options) and (self.user_options['volumes'] is not None):
+            self.volumes = self.original_volumes.copy()
+            self.volumes.extend(self.user_options['volumes'])
 
-        if ('volume_mounts' in self.user_options) and (self.user_options['volume_mounts'] is not None):
-          self.volume_mounts = self.original_volume_mounts.copy()
-          self.volume_mounts.extend(self.user_options['volume_mounts'])
+          if ('volume_mounts' in self.user_options) and (self.user_options['volume_mounts'] is not None):
+            self.volume_mounts = self.original_volume_mounts.copy()
+            self.volume_mounts.extend(self.user_options['volume_mounts'])
 
-        if 'cpu' in self.user_options:
-          self.cpu_guarantee = self.user_options['cpu']['request']
-          self.cpu_limit = self.user_options['cpu']['limit']
+          if 'cpu' in self.user_options:
+            self.cpu_guarantee = self.user_options['cpu']['request']
+            self.cpu_limit = self.user_options['cpu']['limit']
 
-        if 'memory' in self.user_options:
-          self.mem_guarantee = self.user_options['memory']['request']
-          self.mem_limit = self.user_options['memory']['limit']
+          if 'memory' in self.user_options:
+            self.mem_guarantee = self.user_options['memory']['request']
+            self.mem_limit = self.user_options['memory']['limit']
 
-        if 'gpu' in self.user_options:
-          self.extra_resource_guarantees = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['request'])}
-          self.extra_resource_limits = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['limit'])}
-          self.volumes.extend([{"name": "shm-volume", "emptyDir": {"medium": "Memory"}}])
-          self.volume_mounts.extend([{"name": "shm-volume", "mountPath": "/dev/shm"}])
+          if 'gpu' in self.user_options:
+            self.extra_resource_guarantees = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['request'])}
+            self.extra_resource_limits = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['limit'])}
+            self.volumes.extend([{"name": "shm-volume", "emptyDir": {"medium": "Memory"}}])
+            self.volume_mounts.extend([{"name": "shm-volume", "mountPath": "/dev/shm"}])
+        else:
+          self.user_options.pop('transparent', None)
+
+          if 'start_count' not in dir(self):
+            self.start_count = 0
+            
+            self.original_lists = {}
+
+            for key, value in self.items():
+              if isinstance(value, list):
+                self.original_lists[key] = value.copy()
+
+          for key, value in self.user_options.items():
+            if not isinstance(value, list):
+              setattr(self, key, value)
+            else:
+              new_list = self.original_lists[key].copy()
+              new_list.extend(value)
+
+              setattr(self, key, new_list)
 
         return super().start()
     

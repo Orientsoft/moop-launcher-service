@@ -118,65 +118,72 @@ def get_launch_params(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         body = request.get_json()
-        
-        if 'image' not in body.keys():
-            return Response(
-                json.dumps({'error': 'no image parameter specified'}, indent=1, sort_keys=True),
-                mimetype='application/json',
+
+        if 'transparent' in body.keys():
+            return f(
+                *args,
+                json=body,
+                **kwargs
             )
-        if 'username' not in body.keys():
-            return Response(
-                json.dumps({'error': 'no username parameter specified'}, indent=1, sort_keys=True),
-                mimetype='application/json',
-            )
-        server_name = body['server_name'] if 'server_name' in body.keys() else ''
-
-        if 'vols' in body.keys():
-            vols = body['vols']
-
-            vol_names = [str(uuid.uuid4()) for vol in vols]
-            volumes = []
-            volume_mounts = []
-
-            for i, vol in enumerate(vols):
-                volumes.append({
-                    'name': vol_names[i],
-                    'persistentVolumeClaim': {
-                        'claimName': vol['pvc']
-                    }
-                })
-
-                volume_mounts.append({
-                    'name': vol_names[i],
-                    'mountPath': vol['mount'],
-                    'subPath': vol['subpath']
-                })
         else:
-            volumes = None
-            volume_mounts = None
+            if 'image' not in body.keys():
+                return Response(
+                    json.dumps({'error': 'no image parameter specified'}, indent=1, sort_keys=True),
+                    mimetype='application/json',
+                )
+            if 'username' not in body.keys():
+                return Response(
+                    json.dumps({'error': 'no username parameter specified'}, indent=1, sort_keys=True),
+                    mimetype='application/json',
+                )
+            server_name = body['server_name'] if 'server_name' in body.keys() else ''
 
-        cpu = body['cpu'] if 'cpu' in body.keys() else None
-        memory = body['memory'] if 'memory' in body.keys() else None
-        gpu = body['gpu'] if 'gpu' in body.keys() else None
+            if 'vols' in body.keys():
+                vols = body['vols']
 
-        return f(
-            body['image'],
-            body['username'],
-            *args,
-            server_name=server_name,
-            volumes=volumes,
-            volume_mounts=volume_mounts,
-            cpu=cpu,
-            memory=memory,
-            gpu=gpu,
-            **kwargs
-        )
+                vol_names = [str(uuid.uuid4()) for vol in vols]
+                volumes = []
+                volume_mounts = []
+
+                for i, vol in enumerate(vols):
+                    volumes.append({
+                        'name': vol_names[i],
+                        'persistentVolumeClaim': {
+                            'claimName': vol['pvc']
+                        }
+                    })
+
+                    volume_mounts.append({
+                        'name': vol_names[i],
+                        'mountPath': vol['mount'],
+                        'subPath': vol['subpath']
+                    })
+            else:
+                volumes = None
+                volume_mounts = None
+
+            cpu = body['cpu'] if 'cpu' in body.keys() else None
+            memory = body['memory'] if 'memory' in body.keys() else None
+            gpu = body['gpu'] if 'gpu' in body.keys() else None
+
+            return f(
+                body['image'],
+                body['username'],
+                *args,
+                server_name=server_name,
+                volumes=volumes,
+                volume_mounts=volume_mounts,
+                cpu=cpu,
+                memory=memory,
+                gpu=gpu,
+                **kwargs
+            )
 
     return decorated
 
 @app.route('{}{}'.format(service_prefix, 'containers'), methods=['POST'])
 @get_launch_params
-def launch(image, username, server_name='', volumes=None, volume_mounts=None, cpu=None, memory=None, gpu=None):
+def launch(image='', username='', server_name='', volumes=None, volume_mounts=None, cpu=None, memory=None, gpu=None, json=None):
     try:
         session = requests.Session()
 
@@ -214,16 +221,19 @@ def launch(image, username, server_name='', volumes=None, volume_mounts=None, cp
 
         user_token = user_token_resp['token']
         
-        data = {
-            'image': image,
-            'username': username,
-            'server_name': server_name,
-            'volumes': volumes,
-            'volume_mounts': volume_mounts,
-            'cpu': cpu,
-            'memory': memory,
-            'gpu': gpu
-        }
+        if json is not None:
+            data = json
+        else:
+            data = {
+                'image': image,
+                'username': username,
+                'server_name': server_name,
+                'volumes': volumes,
+                'volume_mounts': volume_mounts,
+                'cpu': cpu,
+                'memory': memory,
+                'gpu': gpu
+            }
 
         logger.debug('data: {}'.format(data))
 
