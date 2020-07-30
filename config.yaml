@@ -3,7 +3,7 @@ port: 5000
 debug: true
 # 10 - debug
 log_level: 10
-status_check_interval: 1
+status_check_interval: 2
 status_check_count: 120
 jupyterhub_service_prefix: '/services/launcher/'
 jupyterhub_url: 'http://192.168.0.31:30264'

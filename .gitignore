@@ -1,3 +1,5 @@
+celery-config.py
+*.log
 deploy/
 Makefile
 __pycache__/

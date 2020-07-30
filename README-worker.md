@@ -1,7 +1,7 @@
 
-# jupyterhub-launcher-service
+# jupyterhub-launcher-worker
 
-Extended launcher service for jupyterhub, to start container with run-time parameters.  
+Extended launcher service worker for jupyterhub, to start container with run-time parameters.  
 
 ## Docker build
 ```sh
@@ -43,27 +43,27 @@ hub:
         
           self.image = self.user_options['image']
 
-          if ('volumes' in self.user_options) and (self.user_options['volumes'] is not None):
-            self.volumes = self.original_volumes.copy()
-            self.volumes.extend(self.user_options['volumes'])
+        if self.user_options.get('volumes'):
+          self.volumes = self.original_volumes.copy()
+          self.volumes.extend(self.user_options['volumes'])
 
-          if ('volume_mounts' in self.user_options) and (self.user_options['volume_mounts'] is not None):
-            self.volume_mounts = self.original_volume_mounts.copy()
-            self.volume_mounts.extend(self.user_options['volume_mounts'])
+        if self.user_options.get('volume_mounts'):
+          self.volume_mounts = self.original_volume_mounts.copy()
+          self.volume_mounts.extend(self.user_options['volume_mounts'])
 
-          if 'cpu' in self.user_options:
-            self.cpu_guarantee = self.user_options['cpu']['request']
-            self.cpu_limit = self.user_options['cpu']['limit']
+        if self.user_options.get('cpu'):
+          self.cpu_guarantee = self.user_options['cpu']['request']
+          self.cpu_limit = self.user_options['cpu']['limit']
 
-          if 'memory' in self.user_options:
-            self.mem_guarantee = self.user_options['memory']['request']
-            self.mem_limit = self.user_options['memory']['limit']
+        if self.user_options.get('memory'):
+          self.mem_guarantee = self.user_options['memory']['request']
+          self.mem_limit = self.user_options['memory']['limit']
 
-          if 'gpu' in self.user_options:
-            self.extra_resource_guarantees = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['request'])}
-            self.extra_resource_limits = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['limit'])}
-            self.volumes.extend([{"name": "shm-volume", "emptyDir": {"medium": "Memory"}}])
-            self.volume_mounts.extend([{"name": "shm-volume", "mountPath": "/dev/shm"}])
+        if self.user_options.get('gpu'):
+          self.extra_resource_guarantees = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['request'])}
+          self.extra_resource_limits = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['limit'])}
+          self.volumes.extend([{"name": "shm-volume", "emptyDir": {"medium": "Memory"}}])
+          self.volume_mounts.extend([{"name": "shm-volume", "mountPath": "/dev/shm"}])
         else:
           self.user_options.pop('transparent', None)
 
@@ -116,52 +116,60 @@ jupyterhub_api_token: 'ad6b8dc16f624b54a5b7d265f0744c98'
 user_token_lifetime: 1800
 ```
 
+celery-config.py:  
+
+```py
+broker_url = 'redis://:pass@a.b.c.d:6379/0'
+result_backend = 'redis://:pass@a.b.c.d:6379/0'
+```
+
 ## dev start
 
 ```sh
-python launcher-service.py
+celery -A launcher-worker worker -l info
 ```
 
 ## API
 
-Launcher Service extends the following HTTP **POST** API to jupyterhub services path:  
+celery tasks:
 
+### 1. launch container
+
+```py
+def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gpu=None, json=None, skip_check=True)
 ```
-POST http://192.168.0.31:30711/services/launcher/containers
-```
 
-Submit run-time parameters in request.body - **image, username, server_name and volume parameters are supported**:  
-
+#### parameters:  
 ```js
-{
-    "image": "jupyter/base-notebook:latest",
-    "username": "voyager",
-    "cpu": {
-        "request": 0.5,
-        "limit": 1
-    },
-    "memory": {
-        "request": "512M",
-        "limit": "1G"
-    },
-    "gpu":{
-        "request": 1,
-        "limit": 1
-    },
-    "vols": [
-        {
-            "pvc": String, // PVC name
-            "mount": String, // mount point
-            "subpath": String, // mount sub path
-        }
-    ]
-}
+"image": "jupyter/base-notebook:latest",
+"username": "voyager",
+"cpu": {
+    "request": 0.5,
+    "limit": 1
+},
+"memory": {
+    "request": "512M",
+    "limit": "1G"
+},
+"gpu":{
+    "request": 1,
+    "limit": 1
+},
+"vols": [
+    {
+        "pvc": String, // PVC name
+        "mount": String, // mount point
+        "subpath": String, // mount sub path
+    }
+]
 ```
 
+If you specify ```json``` with a ```transparent``` key, then launcher and spawner will use tranparent mode - the other keys in json will be directly assigned to spawner.  
 server_name could be omitted, if you don't need named server. By default, we only allow a user to start an unnamed server.  
-  
-The request should be finished in tens of seconds, so you might want to set a long timeout to your http client.  
-If the container cannot start in 300 seconds, the service will fail with 500 status code.  
+
+If the container cannot start in 300 seconds, the service will fail and return ```None```.  
+
+#### return:  
 If container starts successfully, notebook endpoint url and other info will be returned:  
 
 ```js
@@ -193,14 +201,16 @@ If container starts successfully, notebook endpoint url and other info will be r
 }
 ```
 
-To get server status of a user:  
+### 2. read container
 
+```py
+def read(username, server_name='')
 ```
-GET http://192.168.0.31:30711/services/launcher/containers?username=voyager
-```
 
-Returns:  
+#### parameters:   
+username and server_name
 
+#### return:
 ```js
 {
     "last_activity": "2019-03-15T03:01:17.012565Z",
@@ -216,16 +226,17 @@ Returns:
 }
 ```
 
-If no server could be found for specified user, 400 status code will be returned.  
+### 3. remove container
 
-To shutdown server:  
-
-```
-DELETE http://192.168.0.31:30711/services/launcher/containers?username=voyager
+```py
+def remove(username, server_name='')
 ```
 
-Returns empty body if successed.  
-400 status code will be returned if no server could be found.
+#### parameters:   
+username and server_name
+
+#### return:
+Boolean, True for success, False for failure
 
 ## notebook endpoint
 
