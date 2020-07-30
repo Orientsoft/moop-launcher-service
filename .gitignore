@@ -1,3 +1,4 @@
+nohup.out
 celery-config.py
 *.log
 deploy/

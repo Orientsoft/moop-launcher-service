@@ -116,6 +116,8 @@ jupyterhub_api_token: 'ad6b8dc16f624b54a5b7d265f0744c98'
 user_token_lifetime: 1800
 ```
 
+For log level, please check https://docs.python.org/3/library/logging.html#logging-levels.
+
 celery-config.py:  
 
 ```py
@@ -164,8 +166,16 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
 ]
 ```
 
-If you specify ```json``` with a ```transparent``` key, then launcher and spawner will use tranparent mode - the other keys in json will be directly assigned to spawner.  
 server_name could be omitted, if you don't need named server. By default, we only allow a user to start an unnamed server.  
+If you specify ```json``` with a ```transparent``` key, then launcher and spawner will use tranparent mode - the other keys in json will be directly assigned to spawner.  
+To support gpu, use transparent mode and specify extra toleration:  
+```yaml
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Equal
+    value: gpu
+    effect: NoSchedule
+```
 
 If the container cannot start in 300 seconds, the service will fail and return ```None```.  
 
