@@ -59,6 +59,9 @@ hub:
           self.mem_guarantee = self.user_options['memory']['request']
           self.mem_limit = self.user_options['memory']['limit']
 
+        if self.user_options.get('env'):
+          self.environment = self.user_options['env']
+
         if self.user_options.get('gpu'):
           self.extra_resource_guarantees = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['request'])}
           self.extra_resource_limits = {"nvidia.com/gpu": "{}".format(self.user_options['gpu']['limit'])}
@@ -131,6 +134,12 @@ result_backend = 'redis://:pass@a.b.c.d:6379/0'
 celery -A launcher-worker worker -l info
 ```
 
+## stop all workers
+
+```sh
+ps -ef | grep launcher | grep -v grep | awk '{print $2}' | xargs kill -9
+```
+
 ## API
 
 celery tasks:
@@ -138,7 +147,7 @@ celery tasks:
 ### 1. launch container
 
 ```py
-def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gpu=None, json=None, skip_check=True)
+def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gpu=None, env=None, json=None, skip_check=True)
 ```
 
 #### parameters:  
@@ -163,7 +172,11 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
         "mount": String, // mount point
         "subpath": String, // mount sub path
     }
-]
+],
+"env": {
+  "key1": "value1",
+  "key2": "value2"
+}
 ```
 
 server_name could be omitted, if you don't need named server. By default, we only allow a user to start an unnamed server.  
@@ -208,6 +221,10 @@ If container starts successfully, notebook endpoint url and other info will be r
             "subpath": String, // mount sub path
         }
     ]
+    "env": {
+      "key1": "value1",
+      "key2": "value2"
+    }
 }
 ```
 

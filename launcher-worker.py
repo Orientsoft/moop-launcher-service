@@ -22,7 +22,7 @@ CONFIG_PATH = './config.yaml'
 CELERY_CONFIG_FILE = 'celery-config'
 
 SLOW_CHECK_LIMIT = 5
-SLOW_CHECK_INTERVAL = 4
+SLOW_CHECK_INTERVAL = 1
 
 with open(CONFIG_PATH) as config_file:
     config_str = config_file.read()
@@ -43,6 +43,8 @@ with open(CONFIG_PATH) as config_file:
     HOST = configs['host']
     PORT = configs['port']
     DEBUG = configs['debug']
+
+    NAMESPACE = configs['namespace']
 
 # configs from envs
 '''
@@ -124,8 +126,27 @@ def request_api(session, url, *args, method='get', **kwargs):
 
     return resp
 
+'''
+async def get_pod_status_by_user_id(
+    user_id: str,
+    namespace: str = NAMESPACE
+):
+    try:
+        response = api_instance.read_namespaced_pod_status(
+            name='jupyter-%s' % user_id,
+            namespace=namespace
+        )
+
+        return response.status.phase
+    except ApiException as e:
+        if e.status == 404:
+            return False
+        else:
+            raise e
+'''
+
 @celery.task(max_retries=3, name='launcher-worker:launch')
-def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gpu=None, json=None, skip_check=True):
+def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gpu=None, env=None, json=None, skip_check=True):
     try:
         if json is None:
             if vols is not None:
@@ -190,7 +211,8 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
                 'volume_mounts': volume_mounts,
                 'cpu': cpu,
                 'memory': memory,
-                'gpu': gpu
+                'gpu': gpu,
+                'env': env
             }
 
         logger.debug('data: {}'.format(data))
@@ -205,6 +227,7 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
 
         # wait for the server to start
         if server_resp.status_code == 202:
+            '''
             for i in range(LAUNCH_STATUS_CHECK_COUNT):
                 user_data = request_api(
                     session,
@@ -231,6 +254,13 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
                     time.sleep(LAUNCH_STATUS_INTERVAL)
                 else:
                     time.sleep(SLOW_CHECK_INTERVAL)
+                '''
+            
+            data['token'] = user_token
+
+            return data
+        else:
+            return None
     except requests.exceptions.RequestException as e:
         # there might be something wrong with jupyterhub or network
         logger.error('Request Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
