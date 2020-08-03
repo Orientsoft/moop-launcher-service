@@ -254,7 +254,7 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
                     time.sleep(LAUNCH_STATUS_INTERVAL)
                 else:
                     time.sleep(SLOW_CHECK_INTERVAL)
-                '''
+            '''
             
             data['token'] = user_token
 
