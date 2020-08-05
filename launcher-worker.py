@@ -12,6 +12,7 @@ import requests
 from celery import Celery
 from kombu import Queue
 import yaml
+from celery_config import broker_url, result_backend, enable_utc
 
 # consts
 REQUEST_TIMEOUT = 300
@@ -19,7 +20,6 @@ LOG_NAME = 'Launcher-Service'
 LOG_FORMAT = '%(asctime)s - %(filename)s:%(lineno)s - %(name)s:%(funcName)s - [%(levelname)s] %(message)s'
 
 CONFIG_PATH = './config.yaml'
-CELERY_CONFIG_FILE = 'celery-config'
 
 SLOW_CHECK_LIMIT = 5
 SLOW_CHECK_INTERVAL = 1
@@ -62,6 +62,7 @@ user_token_lifetime = int(os.getenv('USER_TOKEN_LIFETIME').strip())
 
 hub_api_url = '{}{}'.format(hub_url, hub_api_prefix)
 
+
 def setup_logger(level):
     handler = logging.StreamHandler(stream=sys.stdout)
     formatter = logging.Formatter(LOG_FORMAT)
@@ -73,24 +74,36 @@ def setup_logger(level):
 
     return logger
 
+
 logger = setup_logger(int(LOG_LEVEL))
 
-logger.info('\n*** Launcher-Service ***\n\nGot envs:\nSTATUS_CHECK_INTERVAL: {}\nSTATUS_CHECK_COUNT: {}\nLOG_LEVEL: {}\nJUPYTERHUB_SERVICE_PREFIX: {}\nJUPYTERHUB_URL: {}\nJUPYTERHUB_API_PREFIX: {}\nJUPYTERHUB_API_TOKEN: {}\n'.format(
-    LAUNCH_STATUS_INTERVAL,
-    LAUNCH_STATUS_CHECK_COUNT,
-    LOG_LEVEL,
-    service_prefix,
-    hub_url,
-    hub_api_prefix,
-    hub_api_token
-))
+logger.info(
+    '\n*** Launcher-Service ***\n\nGot envs:\nSTATUS_CHECK_INTERVAL: {}\nSTATUS_CHECK_COUNT: {}\nLOG_LEVEL: {}\nJUPYTERHUB_SERVICE_PREFIX: {}\nJUPYTERHUB_URL: {}\nJUPYTERHUB_API_PREFIX: {}\nJUPYTERHUB_API_TOKEN: {}\n'.format(
+        LAUNCH_STATUS_INTERVAL,
+        LAUNCH_STATUS_CHECK_COUNT,
+        LOG_LEVEL,
+        service_prefix,
+        hub_url,
+        hub_api_prefix,
+        hub_api_token
+    ))
 
 # read config & init objects
 celery = Celery()
-celery.config_from_object(CELERY_CONFIG_FILE)
+
+
+# in docker load config  method
+class Config:
+    broker_url = broker_url
+    result_backend = result_backend
+    enable_utc = enable_utc
+
+
+celery.config_from_object(Config)
 celery.conf.task_queues = (
-     Queue('moop-launcher', routing_key='moop-launcher'),
+    Queue('moop-launcher', routing_key='moop-launcher'),
 )
+
 
 def request_api(session, url, *args, method='get', **kwargs):
     headers = {
@@ -119,12 +132,13 @@ def request_api(session, url, *args, method='get', **kwargs):
             **kwargs
         )
 
-    if (method == 'get') and (resp.status_code != 404): # allow GET 404
+    if (method == 'get') and (resp.status_code != 404):  # allow GET 404
         resp.raise_for_status()
 
     logger.debug('req - {} {}\nresp - code: {}, text: {}'.format(method, url, resp.status_code, resp.text))
 
     return resp
+
 
 '''
 async def get_pod_status_by_user_id(
@@ -145,8 +159,10 @@ async def get_pod_status_by_user_id(
             raise e
 '''
 
+
 @celery.task(max_retries=3, name='launcher-worker:launch')
-def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gpu=None, env=None, json=None, skip_check=True):
+def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gpu=None, env=None, json=None,
+           skip_check=True):
     try:
         if json is None:
             if vols is not None:
@@ -180,7 +196,7 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
                 user_resp = request_api(session, 'users/{}'.format(username))
 
                 if (user_resp.status_code == 404):
-                # if 'status' in user_data and user_data['status'] == 404:
+                    # if 'status' in user_data and user_data['status'] == 404:
                     new_user = request_api(session, 'users/{}'.format(username), method='post').json()
                 else:
                     user_data = user_resp.json()
@@ -199,7 +215,7 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
         ).json()
 
         user_token = user_token_resp['token']
-        
+
         if json is not None:
             data = json
         else:
@@ -255,7 +271,7 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
                 else:
                     time.sleep(SLOW_CHECK_INTERVAL)
             '''
-            
+
             data['token'] = user_token
 
             return data
@@ -264,18 +280,19 @@ def launch(image, username, server_name='', vols=None, cpu=None, memory=None, gp
     except requests.exceptions.RequestException as e:
         # there might be something wrong with jupyterhub or network
         logger.error('Request Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
-        
+
         return None
     except ChildProcessError as e:
         # cannot properly start a container
         logger.error('Container Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
-        
+
         return None
     except Exception as e:
         # this might be a bug
         logger.critical('Program Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
-        
+
         return None
+
 
 @celery.task(max_retries=3, name='launcher-worker:read')
 def read(username, server_name=''):
@@ -291,13 +308,14 @@ def read(username, server_name=''):
     except requests.exceptions.RequestException as e:
         # there might be something wrong with jupyterhub or network
         logger.error('Request Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
-        
+
         return None
     except Exception as e:
         # this might be a bug
         logger.critical('Program Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
-        
+
         return None
+
 
 @celery.task(max_retries=3, name='launcher-worker:remove')
 def remove(username, server_name=''):
@@ -313,13 +331,14 @@ def remove(username, server_name=''):
     except requests.exceptions.RequestException as e:
         # there might be something wrong with jupyterhub or network
         logger.error('Request Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
-        
+
         return False
     except Exception as e:
         # this might be a bug
         logger.critical('Program Error: {}\nStack: {}\n'.format(e, traceback.format_exc()))
-        
+
         return False
-        
+
+
 if __name__ == '__main__':
     logger.debug('configs: {}'.format(configs))
