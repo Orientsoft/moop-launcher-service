@@ -1,0 +1,32 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: launcher-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: launcher-worker
+  template:
+    metadata:
+      labels:
+        app: launcher-worker
+    spec:
+      containers:
+      - name: launcher-worker
+        image: registry.mooplab.com:8443/moop/moop-launcher-worker:v1.0
+        volumeMounts:
+          - name: launcher-worker-config
+            mountPath: /app/config.yaml
+            subPath: config.yaml
+          - name: launcher-worker-config
+            mountPath: /app/celery_config.py
+            subPath: celery_config.py
+      serviceAccountName: moop
+      imagePullSecrets:
+      - name: reg-secret
+      volumes:
+        - name:  launcher-worker-config
+          configMap:
+            name: launcher-worker-config
